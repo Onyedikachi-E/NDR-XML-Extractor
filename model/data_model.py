@@ -71,7 +71,7 @@ class ConditionSpecificQuestions:
 class HivEncountersReport:
     def __init__(self):
         self.visit_id = ""
-        self.visit_Date = ""
+        self.visit_date = ""
         self.duration_on_art = ""
         self.patient_weight = ""
         self.child_height = ""

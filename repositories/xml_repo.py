@@ -257,7 +257,7 @@ def get_hiv_encounters(connection:sql.MySQLConnection, pepfar_id:str, start_date
 
     # To retrieve all the encounter IDs based on specified date
     query = """SELECT encounter_id FROM encounter WHERE form_id = 14 AND patient_id IN (
-                    SELECT DISTINCT patient_id from patient_identifier WHERE identifier = %s) AND voided = 0
+                    SELECT DISTINCT patient_id from patient_identifier WHERE identifier = %s and identifier_type = 4) AND voided = 0
                         AND date_created between %s AND %s"""
 
     cursor.execute(query, (pepfar_id, start_date, end_date,))
@@ -268,14 +268,61 @@ def get_hiv_encounters(connection:sql.MySQLConnection, pepfar_id:str, start_date
     # Form a list of all encounter ids
     encounter_id_list = [encounter_id.get("encounter_id") for encounter_id in encounter_ids]
 
-    for ids in  encounter_id_list:
-        
+    # Form a list of Encounter Objects
+    encounter_object_list = []
+    for encounter_no in  encounter_id_list:
         # Query the OBS to retrieve all data element for each encounter_id
-        query = """SELECT * FROM obs WHERE encounter_id = %s AND person_id IN (SELECT DISTINCT patient_id FROM patient_identifier WHERE)"""
+        query = """SELECT obs_datetime, concept_id, value_coded, value_datetime, value_numeric 
+                        FROM obs WHERE encounter_id = %s AND person_id IN (
+                            SELECT DISTINCT patient_id FROM patient_identifier WHERE identifier = %s and identifier_type = 4) AND voided = 0"""
 
+        cursor.execute(query, (encounter_no, pepfar_id,))
+        encounters = cursor.fetchall()
 
+        if encounters is not None:
+            hiv_encounter_data = data_model.HivEncountersReport()
+            hiv_encounter_data.visit_id = ""
+            hiv_encounter_data.visit_date = ""
+            hiv_encounter_data.duration_on_art = ""
+            hiv_encounter_data.patient_weight = ""
+            hiv_encounter_data.child_height = ""
+            hiv_encounter_data.blood_pressure = ""
+            hiv_encounter_data.edd_pmtct_link = ""
+            hiv_encounter_data.family_planing_code = ""
+            hiv_encounter_data.functional_status = ""
+            hiv_encounter_data.who_clinical_stage = ""
+            hiv_encounter_data.tb_status = ""
+            hiv_encounter_data.art_regimen_code = ""
+            hiv_encounter_data.art_regimen_code_desc_text = ""
+            hiv_encounter_data.prescribed_regimen_indicator = ""
+            hiv_encounter_data.substitution_indicator = ""
+            hiv_encounter_data.next_appointment_date = ""
+            hiv_encounter_data.stopped_regimen = ""
 
+        # Restructure the HIV Encounter object to form a dictionary
+        hiv_encounter_mapper = {
+            "visit_id":hiv_encounter_data.visit_id[0],
+            "visit_date":hiv_encounter_data.visit_date[0],
+            "duration_on_art":hiv_encounter_data.duration_on_art[0],
+            "patient_weight":hiv_encounter_data.patient_weight[0],
+            "child_height":hiv_encounter_data.child_height[0],
+            "blood_pressure":hiv_encounter_data.blood_pressure[0],
+            "edd_pmtct_link":hiv_encounter_data.edd_pmtct_link[0],
+            "family_planing_code":hiv_encounter_data.family_planing_code[0],
+            "functional_status":hiv_encounter_data.functional_status[0],
+            "who_clinical_stage":hiv_encounter_data.who_clinical_stage[0],
+            "tb_status":hiv_encounter_data.tb_status[0],
+            "art_regimen_code":hiv_encounter_data.art_regimen_code[0],
+            "art_regimen_code_desc_text":hiv_encounter_data.art_regimen_code_desc_text[0],
+            "prescribed_regimen_indicator":hiv_encounter_data.prescribed_regimen_indicator[0],
+            "substitution_indicator":hiv_encounter_data.substitution_indicator[0],
+            "next_appointment_date":hiv_encounter_data.next_appointment_date[0],
+            "stopped_regimen":hiv_encounter_data.stopped_regimen[0]
+        }
 
+        encounter_object_list.append(hiv_encounter_mapper)
+
+    return encounter_object_list
 
 
 def get_laboratory_report(connection:sql.MySQLConnection, pepfar_id:str, start_date:date, end_date:date):
